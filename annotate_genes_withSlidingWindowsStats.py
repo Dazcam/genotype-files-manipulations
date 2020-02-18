@@ -21,24 +21,24 @@ NA       ENSCAFG00000000239
 #Example output:
 
 genes	mean_stats	max_stats	min_stats
-ENSCAFG00000029562	0.445797458857	0.527270908085	0.36432400963
-ENSCAFG00000000911	0.402080897939	0.402080897939	0.402080897939
-ENSCAFG00000000897	0.402080897939	0.402080897939	0.402080897939
-ENSCAFG00000000894	0.402080897939	0.402080897939	0.402080897939
-ENSCAFG00000029833	0.445797458857	0.527270908085	0.36432400963
-ENSCAFG00000023012	0.36432400963	0.36432400963	0.36432400963
-ENSCAFG00000030357	0.379507893058	0.379507893058	0.379507893058
-ENSCAFG00000031536	0.36432400963	0.36432400963	0.36432400963
-ENSCAFG00000000908	0.402080897939	0.402080897939	0.402080897939
-ENSCAFG00000001026	0.441477195122	0.452831729054	0.430122661191
-ENSCAFG00000000905	0.402080897939	0.402080897939	0.402080897939
-ENSCAFG00000031480	0.402080897939	0.402080897939	0.402080897939
-ENSCAFG00000000901	0.402080897939	0.402080897939	0.402080897939
-ENSCAFG00000000239	0.40536458544	0.40536458544	0.40536458544
-ENSCAFG00000000171	0.445797458857	0.527270908085	0.36432400963
 ENSCAFG00000000170	0.527270908085	0.527270908085	0.527270908085
-ENSCAFG00000000173	0.36432400963	0.36432400963	0.36432400963
+ENSCAFG00000000171	0.445797458857	0.527270908085	0.36432400963
 ENSCAFG00000000172	0.445797458857	0.527270908085	0.36432400963
+ENSCAFG00000029562	0.445797458857	0.527270908085	0.36432400963
+ENSCAFG00000029833	0.445797458857	0.527270908085	0.36432400963
+ENSCAFG00000000173	0.36432400963	0.36432400963	0.36432400963
+ENSCAFG00000031536	0.36432400963	0.36432400963	0.36432400963
+ENSCAFG00000023012	0.36432400963	0.36432400963	0.36432400963
+ENSCAFG00000000239	0.40536458544	0.40536458544	0.40536458544
+ENSCAFG00000031480	0.402080897939	0.402080897939	0.402080897939
+ENSCAFG00000000894	0.402080897939	0.402080897939	0.402080897939
+ENSCAFG00000000897	0.402080897939	0.402080897939	0.402080897939
+ENSCAFG00000000901	0.402080897939	0.402080897939	0.402080897939
+ENSCAFG00000000905	0.402080897939	0.402080897939	0.402080897939
+ENSCAFG00000000908	0.402080897939	0.402080897939	0.402080897939
+ENSCAFG00000000911	0.402080897939	0.402080897939	0.402080897939
+ENSCAFG00000001026	0.441477195122	0.452831729054	0.430122661191
+ENSCAFG00000030357	0.379507893058	0.379507893058	0.379507893058
 
 
 #command:
@@ -75,6 +75,13 @@ args = parser.parse_args()
 
 ############################# program #############################
 
+def appendDict(key, Dict, values):
+    if key in Dict.keys():
+        Dict[key].append(values)
+    else:
+        Dict[key] = [values]
+    return Dict
+
 outfile = open(args.output, 'w')
 
 with open(args.input) as datafile:
@@ -82,25 +89,35 @@ with open(args.input) as datafile:
     output = open(args.output, 'w')
     output.write('genes\tmean_%s\tmax_%s\tmin_%s\n' %
                  (header_words[0], header_words[0], header_words[0]))
-    genesDics = {}
 
+    lineNumber = 1
+    genesDics = {}
+    genes = []
     for line in datafile:
         words = line.split()
         if words[0] != 'NA' and words[1] != 'NA':
-            stats = float(words[0])
-            genes = words[1].split(',')
+            statsNext = float(words[0])
+            genesNext = words[1].split(',')
             for g in genes:
-                if g in genesDics.keys():
-                    genesDics[g].append(stats)
-                else:
-                    genesDics[g] = [stats]
+                genesDics = appendDict(g, genesDics, stats)
 
-    print("Dictionary is created!\nCalculating the mean, max and min...")
+                if g not in genesNext:
+                    output.write('%s\t%s\t%s\t%s\n' % (g, mean(genesDics[g]),
+                                               max(genesDics[g]),
+                                               min(genesDics[g])))
+                    del genesDics[g]
+            genes = genesNext
+            stats = statsNext
+
+        lineNumber = calls.lineCounter(lineNumber)
+
+    for g in genes:
+        genesDics = appendDict(g, genesDics, stats)
 
     for k in genesDics.keys():
         output.write('%s\t%s\t%s\t%s\n' % (k, mean(genesDics[k]),
-                                               max(genesDics[k]),
-                                               min(genesDics[k])))
+                                              max(genesDics[k]),
+                                              min(genesDics[k])))
 
 outfile.close()
 print('Done!')
